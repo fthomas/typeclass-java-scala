@@ -5,7 +5,11 @@ trait JsonEncoder[T] {
 }
 
 object JsonEncoder {
-  implicit def boolEncoder = new JsonEncoder[Boolean] {
+  implicit val stringEncoder = new JsonEncoder[String] {
+    override def asJson(t: String): String = "\"" + t + "\""
+  }
+
+  implicit val boolEncoder = new JsonEncoder[Boolean] {
     override def asJson(t: Boolean): String =
       if (t) "true" else "false"
   }
