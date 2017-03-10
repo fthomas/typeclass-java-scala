@@ -1,4 +1,3 @@
-
 abstract class List[A] {
 
   def foldLeft[B](neutral: B)(op:(A, B) => B): B =
@@ -63,31 +62,85 @@ abstract class List[A] {
 
 
 case class Cons[A](head2: A, tail: List[A]) extends List[A]
-case class Nil[A]() extends List[A]
+case class Nil[A]() extends List[A] {
+  def foo = 1
+}
+
+object List {
+  def apply[A](xs: A*): List[A] =
+    xs.foldRight[List[A]](Nil())((a, list) => Cons(a, list))
+
+  def foo = Cons(1, Nil())
+}
 
 val l: List[Int] = Cons(4, Cons(4,Cons(1, Nil())))
 
+List(1, 2, 4)
 
-trait Monoid[T] {
-  def neutral: T
-  def op(a: T, b: T): T
-}
+Seq(123)
 
-implicit val x = new Monoid[String] {
-  override def neutral: String = ""
-  override def op(a: String, b: String): String = b + a
-}
 
-def sum[T](l: List[T])(implicit monoid: Monoid[T]): T =
-  l.foldLeft(monoid.neutral)(monoid.op)
+def sum(l: List[Int]): Int =
+  l.foldLeft(0)(_ + _)
 
 def prod(l: List[Int]): Int =
   l.foldLeft(1)(_ * _)
 
+trait Monoid[A] {
+  def neutral: A
+  def op(a: A, b: A): A
+  // op(neutral, x) = x
+  // op(x, neutral) = x
+  // op(a, op(b, c)) = op(op(a, b), c)
+}
 
-//sum(l)
-prod(l)
-val s = Cons("b", Cons("a", Nil()))
+// !(a || b) = !a && !b
+// !!a = a
+
+val sumMonoid = new Monoid[Int] {
+  override def neutral: Int = 0
+  override def op(a: Int, b: Int): Int = a + b
+}
+
+val prodMonoid = new Monoid[Int] {
+  override def neutral: Int = 1
+  override def op(a: Int, b: Int): Int = a * b
+}
+
+val strMonoid = new Monoid[String] {
+  override def neutral: String = ""
+  override def op(a: String, b: String): String = s"$a$b"
+}
+
+new Monoid[Boolean] {
+  override def neutral: Boolean = true
+  override def op(a: Boolean, b: Boolean): Boolean = a && b
+}
+
+def sum2[A](l: List[A], m: Monoid[A]): A =
+  l.foldLeft(m.neutral)(m.op)
+
+def sum3[A](v: Vector[A], m: Monoid[A]): A =
+  if (v.isEmpty) m.neutral
+  else if (v.size == 1) v.head
+  else {
+    val (left, right) = v.splitAt(v.size / 2)
+    val resL = sum3(left, m)
+    val resR = sum3(right, m)
+    m.op(resL, resR)
+  }
+
+sum3(Vector(1,2,3,4,5), prodMonoid)
+
+
+sum2(l, sumMonoid)
+sum2(l,prodMonoid)
+sum2(List("a", "b", "c"), strMonoid)
+List("a", "b", "c").foldLeft("")(_ ++ _)
+
+
+
+//val s = Cons("b", Cons("a", Nil()))
 //s.foldLeft("")(_ + _ )
-sum(s)
-Nil().isEmpty
+//sum(s)
+//Nil().isEmpty
